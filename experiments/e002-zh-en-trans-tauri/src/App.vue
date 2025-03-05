@@ -6,12 +6,25 @@ const text = ref("");
 const translationResult = ref("");
 const error = ref("");
 const isLoading = ref(false);
+const copySuccess = ref(false);
 
 function handleKeydown(event: KeyboardEvent) {
   // Check for Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux)
   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
     event.preventDefault();
     translate();
+  }
+}
+
+async function copyToClipboard() {
+  try {
+    await navigator.clipboard.writeText(translationResult.value);
+    copySuccess.value = true;
+    setTimeout(() => {
+      copySuccess.value = false;
+    }, 2000);
+  } catch (err) {
+    console.error('Failed to copy text: ', err);
   }
 }
 
@@ -51,7 +64,16 @@ async function translate() {
     </form>
     <div class="result-container">
       <p v-if="error" class="error">{{ error }}</p>
-      <p v-else-if="translationResult" class="result">{{ translationResult }}</p>
+      <div v-else-if="translationResult" class="result-wrapper">
+        <p class="result">{{ translationResult }}</p>
+        <button 
+          class="copy-button" 
+          @click="copyToClipboard" 
+          :class="{ 'copied': copySuccess }"
+        >
+          {{ copySuccess ? 'Copied!' : 'Copy' }}
+        </button>
+      </div>
     </div>
   </main>
 </template>
@@ -187,12 +209,43 @@ textarea {
   width: 100%;
 }
 
-.result {
+.result-wrapper {
+  position: relative;
+  width: 100%;
   margin-top: 1rem;
+}
+
+.copy-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 10px;
+  font-size: 0.8em;
+  background-color: rgba(100, 100, 100, 0.2);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.copy-button:hover {
+  background-color: rgba(100, 100, 100, 0.3);
+}
+
+.copy-button.copied {
+  background-color: #4caf50;
+  color: white;
+}
+
+.result {
+  margin-top: 0;
   white-space: pre-wrap;
   text-align: left;
   padding: 1rem;
+  padding-right: 70px; /* Make room for the copy button */
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 </style>
