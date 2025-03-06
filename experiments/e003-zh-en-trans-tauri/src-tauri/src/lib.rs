@@ -81,6 +81,40 @@ async fn translate(text: &str) -> Result<String, TranslationError> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            #[cfg(desktop)]
+            {
+                use tauri::Manager;
+                use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
+
+                app.handle().plugin(
+                    tauri_plugin_global_shortcut::Builder::new()
+                        .with_shortcuts(["command+shift+t"])?
+                        .with_handler(|app, shortcut, event| {
+                            if event.state == ShortcutState::Pressed  {
+                                // Bring window to front
+                                if let Some(window) = app.get_webview_window("main") {
+                                    // If window is minimized or hidden, show it
+                                    if !window.is_visible().unwrap_or(false) {
+                                        let _ = window.show();
+                                    }
+                                    
+                                    // Bring window to front
+                                    let _ = window.set_focus();
+                                    
+                                    // Unminimize if minimized
+                                    if window.is_minimized().unwrap_or(false) {
+                                        let _ = window.unminimize();
+                                    }
+                                }
+                            }
+                        })
+                        .build(),
+                )?;
+            }
+
+            Ok(())
+        })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![translate])
         .run(tauri::generate_context!())
